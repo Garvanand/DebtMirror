@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  debtmirror_api:
+    build: .
+    container_name: debtmirror_api
+    ports:
+      - "8010:8010"
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://agentos_redis:6379/11
+      - DATABASE_URL=postgresql+asyncpg://agentos:secret@agentos_postgres:5432/agentos
+      - CHROMA_DB_HOST=agentos_chroma
+    env_file:
+      - .env
+    depends_on:
+      - agentos_redis
+      - agentos_postgres
+      - agentos_chroma
+    networks:
+      - agentos_network
+
+  debtmirror_worker:
+    build: .
+    container_name: debtmirror_worker
+    command: ["celery", "-A", "backend.worker.celery_app", "worker", "--loglevel=info"]
+    environment:
+      - ENVIRONMENT=production
+      - REDIS_URL=redis://agentos_redis:6379/11
+      - DATABASE_URL=postgresql+asyncpg://agentos:secret@agentos_postgres:5432/agentos
+      - CHROMA_DB_HOST=agentos_chroma
+    env_file:
+      - .env
+    depends_on:
+      - agentos_redis
+      - agentos_postgres
+      - agentos_chroma
+    networks:
+      - agentos_network
+
+networks:
+  agentos_network:
+    external: true
